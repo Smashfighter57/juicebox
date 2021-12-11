@@ -10,7 +10,8 @@ const {
     createTags,
     createPostTag,
     addTagToPost,
-    getPostsByTagName
+    getPostsByTagName,
+    getUserById
   } = require('./index');
 
   
@@ -58,7 +59,8 @@ const {
         );
         CREATE TABLE post_tags (
           "postId" INTEGER REFERENCES posts(id),
-          "tagId" INTEGER REFERENCES tags(id)
+          "tagId" INTEGER REFERENCES tags(id),
+          UNIQUE ("postId", "tagId")
         );
       `);
   
@@ -161,12 +163,10 @@ const {
       console.log("Result:", albert);
   
       console.log("Finished database tests!");
-    } catch (error) {
-      console.error("Error testing database!");
-      throw error;
-    }
+
     console.log(await getPostsByUser(1));
 
+    console.log(posts)
     console.log("Calling updatePost on posts[1], only updating tags");
     const updatePostTagsResult = await updatePost(posts[1].id, {
       tags: ["#youcandoanything", "#redfish", "#bluefish"]
@@ -176,6 +176,10 @@ const {
     console.log("Calling getPostsByTagName with #happy");
     const postsWithHappy = await getPostsByTagName("#happy");
     console.log("Result:", postsWithHappy);
+  } catch (error) {
+    console.error("Error testing database!");
+    throw error;
+  }
   }
   
   

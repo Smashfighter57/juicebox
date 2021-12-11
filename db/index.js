@@ -1,4 +1,8 @@
+require('dotenv').config();
+console.log(process.env.JWT_SECRET);
+
 const { Client } = require('pg');
+const usersRouter = require('../api/users');
 
 const client = new Client('postgres://localhost:5432/juicebox-dev');
 
@@ -74,6 +78,20 @@ async function updateUser(id, fields = {}) {
     }
 }
 
+async function getUserByUsername(username) {
+    try {
+        const { rows: [user] } = await clearInterval.query(`
+        SELECT *
+        FROM users
+        WHERE username=$1;
+      `, [username]);
+
+        return user;
+    }catch (error) {
+        throw error;
+    }
+}
+
 async function createPost({
     authorId,
     title,
@@ -92,6 +110,7 @@ async function createPost({
 
         return await addTagsToPost(post.id, tagList);
     }catch (error) {
+        console.log("error creating post")
         throw error;
     }
 }
@@ -164,7 +183,7 @@ async function getAllPosts() {
 
 async function getPostsByUser(userId) {
     try {
-        const { rows: postIds } = client.query(`
+        const { rows: postIds } = await client.query(`
         SELECT id 
         FROM posts
         WHERE "authorId"=${ userId };
@@ -181,27 +200,39 @@ async function getPostsByUser(userId) {
 }
 
 async function createTags(tagList) {
+    console.log(tagList)
     if (tagList.length === 0) {
         return;
     }
 
     const insertValues = tagList.map(
-        (_, index)=> `$${index +1}`).join(') (');
+        (_, index)=> `$${index +1}`).join('), (');
 
     const selectValues = tagList.map(
     (_, index) => `$${index + 1}`).join(', ');
 
     try {
-        const tags = await client.query(`
+        console.log(`
         INSERT INTO tags(name)
-        VALUES (${insertValues}),
-        SELECT * FROM tags where name IN (${selectValues});
+        VALUES (${insertValues})
         ON CONFLICT (name) DO NOTHING;
-        tagList;
-        `);
+        `)
+        await client.query(`
+        INSERT INTO tags(name)
+        VALUES (${insertValues})
+        ON CONFLICT (name) DO NOTHING;
+        `, tagList);
+        console.log(`
+        SELECT * FROM tags where name IN (${selectValues});
+        `)
+        const {rows} = await client.query(`
+        SELECT * FROM tags where name IN (${selectValues});
+        `, tagList);
+        console.log(rows)
 
-        return tags;
+        return rows;
     }catch(error) {
+        console.log("error creating tags")
         throw error;
     }
     
@@ -214,6 +245,13 @@ async function getPostById(postId) {
         FROM posts
         WHERE id=$1;
       `, [postId]);
+
+      if (!post) {
+          throw {
+              name: "PostNotFoundError",
+              message: "Could not find a post with that postId"
+          };
+      }
   
       const { rows: tags } = await client.query(`
         SELECT tags.*
@@ -283,6 +321,7 @@ async function getPostsByTagName(tagName) {
     }
   } 
 
+  
 module.exports = {
     client,
     getAllUsers,
@@ -295,6 +334,7 @@ module.exports = {
     createTags,
     createPostTag,
     addTagsToPost,
-    getPostsByTagName
+    getPostsByTagName,
+    getUserById
 
 }
