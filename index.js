@@ -6,7 +6,7 @@ const { PORT = 5400 } = process.env;
       console.log('The server is up on port', PORT)
   })
 
-  const apiRouter = require('../api');
+  const apiRouter = require('./api');
   server.use('/api', apiRouter);
 
   server.get('/background/:color', (req, res, next) => {
